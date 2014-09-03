@@ -17,24 +17,13 @@
 //
 // Top level design file.
 
-`define WITH_LEDs
-
 module rk_de1(
 	input			clk50mhz,
-
 	
-	input [3:0] 	KEY,
-	output [9:0] 	LEDr,
-	output [7:0] 	LEDg,
-	input [9:0] 	SW, 
+	input    [3:0] KEY,
 
-	output [6:0] 	HEX0,
-	output [6:0] 	HEX1,
-	output [6:0] 	HEX2,
-	output [6:0] 	HEX3,
-
-	inout	[15:0]	DRAM_DQ,				//	SDRAM Data bus 16 Bits
-	output	[11:0]	DRAM_ADDR,				//	SDRAM Address bus 12 Bits
+	inout	  [15:0]	DRAM_DQ,					//	SDRAM Data bus 16 Bits
+	output  [11:0]	DRAM_ADDR,				//	SDRAM Address bus 12 Bits
 	output			DRAM_LDQM,				//	SDRAM Low-byte Data Mask 
 	output			DRAM_UDQM,				//	SDRAM High-byte Data Mask
 	output			DRAM_WE_N,				//	SDRAM Write Enable
@@ -48,51 +37,44 @@ module rk_de1(
 
 	output 			VGA_HS,
 	output 			VGA_VS,
-	output	[3:0] 	VGA_R,
-	output	[3:0] 	VGA_G,
-	output	[3:0] 	VGA_B,
+	output	[4:0] VGA_R,
+	output	[5:0] VGA_G,
+	output	[4:0] VGA_B,
 
-	inout			I2C_SDAT,				//	I2C Data
-	output			I2C_SCLK,				//	I2C Clock
+	input				PS2_CLK,
+	input				PS2_DAT,
 
-	inout			AUD_BCLK,
-	output			AUD_DACDAT,
-	output			AUD_DACLRCK,
-	output			AUD_XCK,
-	output			AUD_ADCLRCK,			//	Audio CODEC ADC LR Clock
-	input			AUD_ADCDAT,				//	Audio CODEC ADC Data
-
-	input			PS2_CLK,
-	input			PS2_DAT,
-
-	////////////////////	USB JTAG link	////////////////////////////
-	input  			TDI,					// CPLD -> FPGA (data in)
-	input  			TCK,					// CPLD -> FPGA (clk)
-	input  			TCS,					// CPLD -> FPGA (CS)
-	output 			TDO,					// FPGA -> CPLD (data out)
-
-	input			SD_DAT,					//	SD Card Data 			(MISO)
-	output			SD_DAT3,				//	SD Card Data 3 			(CSn)
+	input				SD_DAT,					//	SD Card Data 			(MISO)
+	output			SD_DAT3,					//	SD Card Data 3 			(CSn)
 	output			SD_CMD,					//	SD Card Command Signal	(MOSI)
 	output			SD_CLK,					//	SD Card Clock			(SCK)
 
 	output			UART_TXD,
-	input			UART_RXD,
+	input				UART_RXD,
+	
+	output			BEEP
 
-	output [12:0] 	GPIO_0,
-	output [35:0]	GPIO_1 );
+);
 
-assign GPIO_0 = 0;
-assign GPIO_1 = 0;
-assign TDO = 0;
 assign UART_TXD = 0;
+
+////////////////////   REAL 50 MHz from 48 MHz ////
+
+wire clk50real;
+wire clk24mhz;
+
+vga_pll video_clock(
+	.inclk0(clk50mhz),
+	.c0(clk50real),
+	.c1(clk24mhz)
+);
 
 ////////////////////   RESET   ////////////////////
 reg[3:0] reset_cnt;
 reg reset_n;
 wire reset = ~reset_n;
 
-always @(posedge clk50mhz) begin
+always @(posedge clk50real) begin
 	if (KEY[0] && reset_cnt==4'd14)
 		reset_n <= 1'b1;
 	else begin
@@ -101,34 +83,11 @@ always @(posedge clk50mhz) begin
 	end
 end
 
-////////////////////   LEDs   ////////////////////
-
-`ifdef WITH_LEDs
-
-assign LEDr[0] = cpu_sync;
-assign LEDr[1] = cpu_rd;
-assign LEDr[2] = ~cpu_wr_n;
-assign LEDr[9:3] = 0;
-assign LEDg = cpu_rd ? cpu_i : cpu_o;
-
-seg7_lut4 seg0(HEX0,HEX1,HEX2,HEX3, addrbus);
-
-`else
-
-assign LEDr = 0;
-assign LEDg = 0;
-assign HEX0 = 7'h7F;
-assign HEX1 = 7'h7F;
-assign HEX2 = 7'h7F;
-assign HEX3 = 7'h7F;
-
-`endif
-
 ////////////////////   STEP & GO   ////////////////////
 reg		stepkey;
 reg		onestep;
 
-always @(posedge clk50mhz) begin
+always @(posedge clk50real) begin
 	stepkey <= KEY[1];
 	onestep <= stepkey & ~KEY[1];
 end
@@ -138,11 +97,11 @@ end
 wire sram_msb = 0;
 wire[7:0] rom_o;
 
-assign DRAM_CLK=clk50mhz;				//	SDRAM Clock
+assign DRAM_CLK=clk50real;				//	SDRAM Clock
 assign DRAM_CKE=1;				//	SDRAM Clock Enable
 wire[15:0] dramout;
 SDRAM_Controller ramd(
-	.clk50mhz(clk50mhz),				//  Clock 50MHz
+	.clk50mhz(clk50real),				//  Clock 50MHz
 	.reset(reset),					//  System reset
 	.DRAM_DQ(DRAM_DQ),				//	SDRAM Data bus 16 Bits
 	.DRAM_ADDR(DRAM_ADDR),			//	SDRAM Address bus 12 Bits
@@ -162,7 +121,7 @@ SDRAM_Controller ramd(
 );
 wire[7:0] mem_o = dramout[7:0];
 
-biossd rom(.address({addrbus[11]|startup,addrbus[10:0]}), .clock(clk50mhz), .q(rom_o));
+biossd rom(.address({addrbus[11]|startup,addrbus[10:0]}), .clock(clk50real), .q(rom_o));
 
 ////////////////////   CPU   ////////////////////
 wire[15:0] addrbus;
@@ -195,18 +154,18 @@ reg[4:0] cpu_cnt;
 reg cpu_ce2;
 reg[10:0] hldareg;
 wire cpu_ce = cpu_ce2;
-always @(posedge clk50mhz) begin
+always @(posedge clk50real) begin
 	if(reset) begin cpu_cnt<=0; cpu_ce2<=0; hldareg=11'd0; end
 	else
    if((hldareg[10:9]==2'b01)&&((cpu_rd==1)||(cpu_wr_n==0))) begin cpu_cnt<=0; cpu_ce2<=1; end
 	else
-	if((cpu_cnt<9)&&(SW[8]==1) || (cpu_cnt<27)&&(SW[8]==0)) begin cpu_cnt <= cpu_cnt + 5'd1; cpu_ce2<=0; end
+	if(cpu_cnt<27) begin cpu_cnt <= cpu_cnt + 5'd1; cpu_ce2<=0; end
 	else begin cpu_cnt<=0; cpu_ce2<=~hlda; end
 	hldareg<={hldareg[9:0],hlda};
 	startup <= reset|(startup&~addrbus[15]);
 end
 
-k580wm80a CPU(.clk(clk50mhz), .ce(cpu_ce), .reset(reset),
+k580wm80a CPU(.clk(clk50real), .ce(cpu_ce), .reset(reset),
 	.idata(cpu_i), .addr(addrbus), .sync(cpu_sync), .rd(cpu_rd), .wr_n(cpu_wr_n),
 	.intr(cpu_int), .inta_n(cpu_inta_n), .odata(cpu_o), .inte_o(inte));
 
@@ -225,18 +184,18 @@ wire dma_owe_n,dma_ord_n,dma_oiowe_n,dma_oiord_n;
 
 wire vid_rd = ~dma_oiord_n;
 
-k580wt57 dma(.clk(clk50mhz), .ce(vid_cce), .reset(reset),
+k580wt57 dma(.clk(clk50real), .ce(vid_cce), .reset(reset),
 	.iaddr(addrbus[3:0]), .idata(cpu_o), .drq({1'b0,vid_drq,2'b00}), .iwe_n(dma_we_n), .ird_n(1'b1),
 	.hlda(hlda), .hrq(hlda), .dack(dma_dack), .odata(dma_o), .oaddr(vid_addr),
 	.owe_n(dma_owe_n), .ord_n(dma_ord_n), .oiowe_n(dma_oiowe_n), .oiord_n(dma_oiord_n) );
 
-k580wg75 crt(.clk(clk50mhz), .ce(vid_cce),
+k580wg75 crt(.clk(clk50real), .ce(vid_cce),
 	.iaddr(addrbus[0]), .idata(cpu_o), .iwe_n(crt_we_n), .ird_n(crt_rd_n),
 	.vrtc(VGA_VS), .hrtc(VGA_HS), .dack(dma_dack[2]), .ichar(mem_o), .drq(vid_drq), .irq(vid_irq),
 	.odata(crt_o), .line(vid_line), .ochar(vid_char), .lten(vid_lten), .vsp(vid_vsp),
 	.rvv(vid_rvv), .hilight(vid_hilight), .lattr(vid_lattr), .gattr(vid_gattr) );
-
-rk_video vid(.clk50mhz(clk50mhz), .hr(VGA_HS), .vr(VGA_VS), .cce(vid_cce),
+	
+rk_video vid(.clk50mhz(clk50real), .hr(VGA_HS), .vr(VGA_VS), .cce(vid_cce),
 	.r(VGA_R), .g(VGA_G), .b(VGA_B), .line(vid_line), .ichar(vid_char),
 	.vsp(vid_vsp), .lten(vid_lten), .rvv(vid_rvv) );
 
@@ -244,7 +203,7 @@ rk_video vid(.clk50mhz(clk50mhz), .hr(VGA_HS), .vr(VGA_VS), .cce(vid_cce),
 wire[7:0] kbd_o;
 wire[2:0] kbd_shift;
 
-rk_kbd kbd(.clk(clk50mhz), .reset(reset), .ps2_clk(PS2_CLK), .ps2_dat(PS2_DAT),
+rk_kbd kbd(.clk(clk50real), .reset(reset), .ps2_clk(PS2_CLK), .ps2_dat(PS2_DAT),
 	.addr(~ppa1_a), .odata(kbd_o), .shift(kbd_shift));
 
 ////////////////////   SYS PPA   ////////////////////
@@ -253,45 +212,19 @@ wire[7:0] ppa1_a;
 wire[7:0] ppa1_b;
 wire[7:0] ppa1_c;
 
-k580ww55 ppa1(.clk(clk50mhz), .reset(reset), .addr(addrbus[1:0]), .we_n(ppa1_we_n),
+k580ww55 ppa1(.clk(clk50real), .reset(reset), .addr(addrbus[1:0]), .we_n(ppa1_we_n),
 	.idata(cpu_o), .odata(ppa1_o), .ipa(ppa1_a), .opa(ppa1_a),
 	.ipb(~kbd_o), .opb(ppa1_b), .ipc({~kbd_shift,tapein,ppa1_c[3:0]}), .opc(ppa1_c));
 
 ////////////////////   SOUND   ////////////////////
 reg tapein;
-reg[15:0] linein;
-reg[15:0] adcbuf;
-reg[13:0] cnt18;
-reg[4:0] cntbit;
-reg bitclk;
 
-wire[15:0] pulses = {3'b0,ppa1_c[0]^inte,12'b0};
-wire[5:0] line6bit = {~linein[15],linein[14:10]};
-
-wire[13:0] cnt18next = cnt18+14'd755; // 755/2048*50MHz ~ 18.432MHz
-
-assign AUD_XCK = cnt18[10];
-assign AUD_BCLK = reset ? 1'bZ : bitclk;
-assign AUD_DACLRCK = reset ? 1'b0 : cntbit[4];
-assign AUD_ADCLRCK = reset ? 1'b0 : cntbit[4];
-assign AUD_DACDAT = reset ? 1'b0 : pulses[~cntbit[3:0]];
-
-always @(posedge clk50mhz) begin
-	if (cnt18next[13:11]==3'd6) begin
-		cnt18 <= {3'd0, cnt18next[10:0]};
-		bitclk <= ~bitclk;
-		if (bitclk) begin // negedge bitclk
-			if (cntbit==4'd0) linein <= adcbuf;
-			adcbuf[~cntbit[3:0]] <= AUD_ADCDAT;
-			cntbit <= cntbit+5'b1;
-		end
-	end else
-		cnt18 <= cnt18next;
-	if (line6bit < 31) tapein <= 1'b0;
-	if (line6bit > 32) tapein <= 1'b1;
-end
-
-I2C_AV_Config sndcfg(.iCLK(clk50mhz), .iRST_N(reset_n), .I2C_SCLK(I2C_SCLK), .I2C_SDAT(I2C_SDAT));
+soundcodec sound(
+	.clk(clk50real),
+	.pulse(ppa1_c[0]^inte),
+	.reset_n(reset_n),
+	.o_pwm(BEEP)
+);
 
 ////////////////////   SD CARD   ////////////////////
 reg sdcs;
@@ -304,7 +237,7 @@ assign SD_DAT3 = ~sdcs;
 assign SD_CMD = sdcmd;
 assign SD_CLK = sdclk;
 
-always @(posedge clk50mhz or posedge reset) begin
+always @(posedge clk50real or posedge reset) begin
 	if (reset) begin
 		sdcs <= 1'b0;
 		sdclk <= 1'b0;

@@ -19,9 +19,9 @@ module rk_video(
 	output hr,
 	output vr,
 	output cce,
-	output [3:0] r,
-	output [3:0] g,
-	output [3:0] b,
+	output [4:0] r,
+	output [5:0] g,
+	output [4:0] b,
 	input[3:0] line,
 	input[6:0] ichar,
 	input vsp,
@@ -40,9 +40,9 @@ assign hr = h_cnt >= 10'd478 && h_cnt < 10'd530 ? 1'b0 : 1'b1;
 assign vr = v_cnt >= 10'd608 && v_cnt < 10'd614 ? 1'b0 : 1'b1;
 assign cce = d_cnt==3'b000 && state==2'b01;
 
-assign r = data[5] ? 4'b1000 : 4'b0;
-assign g = data[5] ? 4'b1000 : 4'b0;
-assign b = data[5] ? 4'b1000 : 4'b0;
+assign r = data[5] ? 5'b10000 : 5'b0;
+assign g = data[5] ? 6'b100000 : 6'b0;
+assign b = data[5] ? 5'b10000 : 5'b0;
 
 font from(.address({ichar[6:0],line[2:0]}), .clock(clk50mhz), .q(fdata));
 
