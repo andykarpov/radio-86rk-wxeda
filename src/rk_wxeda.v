@@ -13,11 +13,11 @@
 // 
 // Minor changes for adaptation to SDRAM: Ivan Gorodetsky, 2014
 //
-// Design File: rk_de1.v
+// Design File: rk_wxeda.v
 //
 // Top level design file.
 
-module rk_de1(
+module rk_wxeda(
 	input			clk48mhz,
 	
 	input    [3:0] KEY,
