@@ -17,7 +17,6 @@
 
 module rk_video(
 	input clk,
-	input vgaclk,
 	output hr,
 	output vr,
 	output hr_wg75,
@@ -58,14 +57,11 @@ wire q_b;
 rambuffer framebuf(
 	.address_a(address_a),
 	.address_b(address_b),
-	.clock_a(clk),
-	.clock_b(vgaclk),
+	.clock(clk),
 	.data_a(data_a),
 	.data_b(data_b),
 	.wren_a(wren_a),
 	.wren_b(wren_b),
-	.rden_a(rden_a),
-	.rden_b(rden_b),
 	.q_a(q_a),
 	.q_b(q_b)
 );
@@ -96,10 +92,12 @@ begin
 		// write visible data to framebuffer
 		if (h_cnt >= 60 && h_cnt < 468 && v_cnt2 >= 0 && v_cnt2 < 300)
 		begin
-			address_a <= h_cnt - 60 + (10'd408*(v_cnt2 - 0));
 			wren_a <= 1'b1;
+			address_a <= h_cnt - 60 + (10'd408*(v_cnt2 - 0));
 			data_a <= data[5];
 		end
+		else
+			wren_a <= 1'b0;
 					
 		if (h_cnt+1'b1 == 10'd516) // 516 - end of line
 		begin
@@ -130,15 +128,18 @@ begin
 				d_cnt <= d_cnt+1'b1;
 		end
 	end
+	else 
+		wren_a <= 1'b0;
 end
 
 // vga sync generator
 
 wire[10:0] CounterX;
 wire[10:0] CounterY;
+wire inDisplay;
 
 hvsync_generator vgasync(
-	.clk(vgaclk),
+	.clk(clk),
 	.vga_h_sync(hr),
 	.vga_v_sync(vr),
 	.inDisplayArea(inDisplay),
@@ -146,20 +147,19 @@ hvsync_generator vgasync(
 	.CounterY(CounterY)
 );
 
-// vga signal generation
+// vga signal generator
 
 reg[1:0] pixel_state;
 reg[1:0] line_state;
 reg[10:0] pixel_cnt;
 reg[10:0] line_cnt;
 reg pixel;
-wire inDisplay;
 
 assign r = pixel && inDisplay ? 5'b10000 : 5'b0;
 assign g = pixel && inDisplay ? 6'b100000 : 6'b0;
 assign b = pixel && inDisplay ? 5'b10000 : 5'b0;
 
-always @(posedge vgaclk)
+always @(posedge clk)
 begin
 
 	if (CounterX >= 0 && CounterX < 816 && CounterY >= 0 && CounterY < 600) // doubledot visible area
@@ -171,7 +171,6 @@ begin
 		endcase
 
 		address_b <= pixel_cnt + (line_cnt*408);
-		rden_b <= 1'b1;
 		pixel <= q_b;
 		
 		if (pixel_state == 2'b01)
@@ -194,10 +193,7 @@ begin
 			pixel_cnt <= 0;
 			line_state <= 0;
 		end
-
 	end
-	else
-		pixel <= 0;
 end
 
 endmodule

@@ -185,7 +185,7 @@ k580wg75 crt(.clk(clk48mhz), .ce(vid_cce),
 	.odata(crt_o), .line(vid_line), .ochar(vid_char), .lten(vid_lten), .vsp(vid_vsp),
 	.rvv(vid_rvv), .hilight(vid_hilight), .lattr(vid_lattr), .gattr(vid_gattr) );
 	
-rk_video vid(.clk(clk48mhz), .vgaclk(clk48mhz), 
+rk_video vid(.clk(clk48mhz), 
 	.hr(VGA_HS), .vr(VGA_VS), 
 	.r(VGA_R), .g(VGA_G), .b(VGA_B),
 	.hr_wg75(vid_hr), .vr_wg75(vid_vr), .cce(vid_cce),
