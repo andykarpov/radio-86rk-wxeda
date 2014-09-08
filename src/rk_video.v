@@ -49,8 +49,6 @@ reg data_a;
 reg data_b;
 reg wren_a;
 reg wren_b;
-reg rden_a;
-reg rden_b;
 wire q_a;
 wire q_b;
 
