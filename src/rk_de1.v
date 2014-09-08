@@ -18,7 +18,7 @@
 // Top level design file.
 
 module rk_de1(
-	input			clk50mhz,
+	input			clk48mhz,
 	
 	input    [3:0] KEY,
 
@@ -58,23 +58,12 @@ module rk_de1(
 
 assign UART_TXD = 0;
 
-////////////////////   REAL 50 MHz from 48 MHz ////
-
-wire clk50real;
-wire clk24mhz;
-
-vga_pll video_clock(
-	.inclk0(clk50mhz),
-	.c0(clk50real),
-	.c1(clk24mhz)
-);
-
 ////////////////////   RESET   ////////////////////
 reg[3:0] reset_cnt;
 reg reset_n;
 wire reset = ~reset_n;
 
-always @(posedge clk50real) begin
+always @(posedge clk48mhz) begin
 	if (KEY[0] && reset_cnt==4'd14)
 		reset_n <= 1'b1;
 	else begin
@@ -87,7 +76,7 @@ end
 reg		stepkey;
 reg		onestep;
 
-always @(posedge clk50real) begin
+always @(posedge clk48mhz) begin
 	stepkey <= KEY[1];
 	onestep <= stepkey & ~KEY[1];
 end
@@ -97,11 +86,11 @@ end
 wire sram_msb = 0;
 wire[7:0] rom_o;
 
-assign DRAM_CLK=clk50real;				//	SDRAM Clock
+assign DRAM_CLK=clk48mhz;				//	SDRAM Clock
 assign DRAM_CKE=1;				//	SDRAM Clock Enable
 wire[15:0] dramout;
 SDRAM_Controller ramd(
-	.clk50mhz(clk50real),				//  Clock 50MHz
+	.clk50mhz(clk48mhz),				//  Clock 50MHz
 	.reset(reset),					//  System reset
 	.DRAM_DQ(DRAM_DQ),				//	SDRAM Data bus 16 Bits
 	.DRAM_ADDR(DRAM_ADDR),			//	SDRAM Address bus 12 Bits
@@ -121,7 +110,7 @@ SDRAM_Controller ramd(
 );
 wire[7:0] mem_o = dramout[7:0];
 
-biossd rom(.address({addrbus[11]|startup,addrbus[10:0]}), .clock(clk50real), .q(rom_o));
+biossd rom(.address({addrbus[11]|startup,addrbus[10:0]}), .clock(clk48mhz), .q(rom_o));
 
 ////////////////////   CPU   ////////////////////
 wire[15:0] addrbus;
@@ -154,7 +143,7 @@ reg[4:0] cpu_cnt;
 reg cpu_ce2;
 reg[10:0] hldareg;
 wire cpu_ce = cpu_ce2;
-always @(posedge clk50real) begin
+always @(posedge clk48mhz) begin
 	if(reset) begin cpu_cnt<=0; cpu_ce2<=0; hldareg=11'd0; end
 	else
    if((hldareg[10:9]==2'b01)&&((cpu_rd==1)||(cpu_wr_n==0))) begin cpu_cnt<=0; cpu_ce2<=1; end
@@ -165,7 +154,7 @@ always @(posedge clk50real) begin
 	startup <= reset|(startup&~addrbus[15]);
 end
 
-k580wm80a CPU(.clk(clk50real), .ce(cpu_ce), .reset(reset),
+k580wm80a CPU(.clk(clk48mhz), .ce(cpu_ce), .reset(reset),
 	.idata(cpu_i), .addr(addrbus), .sync(cpu_sync), .rd(cpu_rd), .wr_n(cpu_wr_n),
 	.intr(cpu_int), .inta_n(cpu_inta_n), .odata(cpu_o), .inte_o(inte));
 
@@ -181,29 +170,34 @@ wire[1:0] vid_gattr;
 wire vid_cce,vid_drq,vid_irq,hlda;
 wire vid_lten,vid_vsp,vid_rvv,vid_hilight;
 wire dma_owe_n,dma_ord_n,dma_oiowe_n,dma_oiord_n;
+wire vid_hr, vid_vr;
 
 wire vid_rd = ~dma_oiord_n;
 
-k580wt57 dma(.clk(clk50real), .ce(vid_cce), .reset(reset),
+k580wt57 dma(.clk(clk48mhz), .ce(vid_cce), .reset(reset),
 	.iaddr(addrbus[3:0]), .idata(cpu_o), .drq({1'b0,vid_drq,2'b00}), .iwe_n(dma_we_n), .ird_n(1'b1),
 	.hlda(hlda), .hrq(hlda), .dack(dma_dack), .odata(dma_o), .oaddr(vid_addr),
 	.owe_n(dma_owe_n), .ord_n(dma_ord_n), .oiowe_n(dma_oiowe_n), .oiord_n(dma_oiord_n) );
 
-k580wg75 crt(.clk(clk50real), .ce(vid_cce),
+k580wg75 crt(.clk(clk48mhz), .ce(vid_cce),
 	.iaddr(addrbus[0]), .idata(cpu_o), .iwe_n(crt_we_n), .ird_n(crt_rd_n),
-	.vrtc(VGA_VS), .hrtc(VGA_HS), .dack(dma_dack[2]), .ichar(mem_o), .drq(vid_drq), .irq(vid_irq),
+	.vrtc(vid_vr), .hrtc(vid_hr), .dack(dma_dack[2]), .ichar(mem_o), .drq(vid_drq), .irq(vid_irq),
 	.odata(crt_o), .line(vid_line), .ochar(vid_char), .lten(vid_lten), .vsp(vid_vsp),
 	.rvv(vid_rvv), .hilight(vid_hilight), .lattr(vid_lattr), .gattr(vid_gattr) );
 	
-rk_video vid(.clk50mhz(clk50real), .hr(VGA_HS), .vr(VGA_VS), .cce(vid_cce),
-	.r(VGA_R), .g(VGA_G), .b(VGA_B), .line(vid_line), .ichar(vid_char),
-	.vsp(vid_vsp), .lten(vid_lten), .rvv(vid_rvv) );
+rk_video vid(.clk(clk48mhz), .vgaclk(clk48mhz), 
+	.hr(VGA_HS), .vr(VGA_VS), 
+	.r(VGA_R), .g(VGA_G), .b(VGA_B),
+	.hr_wg75(vid_hr), .vr_wg75(vid_vr), .cce(vid_cce),
+	.line(vid_line), .ichar(vid_char),
+	.vsp(vid_vsp), .lten(vid_lten), .rvv(vid_rvv) 
+);
 
 ////////////////////   KBD   ////////////////////
 wire[7:0] kbd_o;
 wire[2:0] kbd_shift;
 
-rk_kbd kbd(.clk(clk50real), .reset(reset), .ps2_clk(PS2_CLK), .ps2_dat(PS2_DAT),
+rk_kbd kbd(.clk(clk48mhz), .reset(reset), .ps2_clk(PS2_CLK), .ps2_dat(PS2_DAT),
 	.addr(~ppa1_a), .odata(kbd_o), .shift(kbd_shift));
 
 ////////////////////   SYS PPA   ////////////////////
@@ -212,7 +206,7 @@ wire[7:0] ppa1_a;
 wire[7:0] ppa1_b;
 wire[7:0] ppa1_c;
 
-k580ww55 ppa1(.clk(clk50real), .reset(reset), .addr(addrbus[1:0]), .we_n(ppa1_we_n),
+k580ww55 ppa1(.clk(clk48mhz), .reset(reset), .addr(addrbus[1:0]), .we_n(ppa1_we_n),
 	.idata(cpu_o), .odata(ppa1_o), .ipa(ppa1_a), .opa(ppa1_a),
 	.ipb(~kbd_o), .opb(ppa1_b), .ipc({~kbd_shift,tapein,ppa1_c[3:0]}), .opc(ppa1_c));
 
@@ -220,7 +214,7 @@ k580ww55 ppa1(.clk(clk50real), .reset(reset), .addr(addrbus[1:0]), .we_n(ppa1_we
 reg tapein;
 
 soundcodec sound(
-	.clk(clk50real),
+	.clk(clk48mhz),
 	.pulse(ppa1_c[0]^inte),
 	.reset_n(reset_n),
 	.o_pwm(BEEP)
@@ -237,7 +231,7 @@ assign SD_DAT3 = ~sdcs;
 assign SD_CMD = sdcmd;
 assign SD_CLK = sdclk;
 
-always @(posedge clk50real or posedge reset) begin
+always @(posedge clk48mhz or posedge reset) begin
 	if (reset) begin
 		sdcs <= 1'b0;
 		sdclk <= 1'b0;

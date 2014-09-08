@@ -145,38 +145,45 @@ always @(*) begin
 end
 
 always @(posedge clk or posedge reset) begin
-	if (reset) begin
-		prev_clk <= 0;
-		shift_reg <= 12'hFFF;
-		extkey <= 0;
-		unpress <= 0;
-		keystate[0] <= 0;
-		keystate[1] <= 0;
-		keystate[2] <= 0;
-		keystate[3] <= 0;
-		keystate[4] <= 0;
-		keystate[5] <= 0;
-		keystate[6] <= 0;
-		keystate[7] <= 0;
-		keystate[8] <= 0;
-		keystate[9] <= 0;
-		keystate[10] <= 0;
-	end else begin
-		prev_clk <= {ps2_clk,prev_clk[3:1]};
-		if (prev_clk==4'b1) begin
-			if (kdata[11]==1'b1 && ^kdata[10:2]==1'b1 && kdata[1:0]==2'b1) begin
-				shift_reg <= 12'hFFF;
-				if (kcode==8'hE0) extkey <= 1'b1; else
-				if (kcode==8'hF0) unpress <= 1'b1; else
+
+		if (reset) begin
+			prev_clk <= 0;
+			shift_reg <= 12'hFFF;
+			extkey <= 0;
+			unpress <= 0;
+			keystate[0] <= 0;
+			keystate[1] <= 0;
+			keystate[2] <= 0;
+			keystate[3] <= 0;
+			keystate[4] <= 0;
+			keystate[5] <= 0;
+			keystate[6] <= 0;
+			keystate[7] <= 0;
+			keystate[8] <= 0;
+			keystate[9] <= 0;
+			keystate[10] <= 0;
+		end 
+		else 
+		begin	
+
+				prev_clk <= {ps2_clk,prev_clk[3:1]};
+				if (prev_clk==4'b1) 
 				begin
-					extkey <= 0;
-					unpress <= 0;
-					if(r!=4'hF) keystate[r][c] <= ~unpress;
+					if (kdata[11]==1'b1 && ^kdata[10:2]==1'b1 && kdata[1:0]==2'b1) 
+					begin
+						shift_reg <= 12'hFFF;
+						if (kcode==8'hE0) extkey <= 1'b1; else
+						if (kcode==8'hF0) unpress <= 1'b1; else
+						begin
+							extkey <= 0;
+							unpress <= 0;
+							if(r!=4'hF) keystate[r][c] <= ~unpress;
+						end
+					end 
+					else
+						shift_reg <= kdata;
 				end
-			end else
-				shift_reg <= kdata;
 		end
-	end
 end
 
 endmodule

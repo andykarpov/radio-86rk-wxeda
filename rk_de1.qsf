@@ -59,7 +59,6 @@ set_location_assignment PIN_90 -to KEY[0]
 set_location_assignment PIN_91 -to KEY[1]
 set_location_assignment PIN_88 -to KEY[2]
 set_location_assignment PIN_89 -to KEY[3]
-set_location_assignment PIN_24 -to clk50mhz
 set_location_assignment PIN_120 -to VGA_R[0]
 set_location_assignment PIN_121 -to VGA_R[1]
 set_location_assignment PIN_124 -to VGA_R[2]
@@ -131,6 +130,9 @@ set_location_assignment PIN_115 -to VGA_G[4]
 set_location_assignment PIN_110 -to VGA_B[4]
 set_location_assignment PIN_119 -to VGA_G[5]
 set_location_assignment PIN_85 -to BEEP
+set_location_assignment PIN_65 -to DRAM_ADDR[12]
+set_location_assignment PIN_24 -to clk48mhz
+set_global_assignment -name VERILOG_FILE src/hvsync_generator.v
 set_global_assignment -name VERILOG_FILE src/soundcodec.v
 set_global_assignment -name VERILOG_FILE src/rk_de1.v
 set_global_assignment -name VERILOG_FILE src/k580wg75.v
@@ -139,15 +141,9 @@ set_global_assignment -name VERILOG_FILE src/k580wt57.v
 set_global_assignment -name VERILOG_FILE src/k580ww55.v
 set_global_assignment -name VERILOG_FILE src/rk_kbd.v
 set_global_assignment -name VERILOG_FILE src/rk_video.v
-set_global_assignment -name VERILOG_FILE src/seg7_lut.v
 set_global_assignment -name QIP_FILE src/DE1/biossd.qip
 set_global_assignment -name QIP_FILE src/DE1/font.qip
-set_global_assignment -name VERILOG_FILE src/DE1/I2C_Controller.v
-set_global_assignment -name VERILOG_FILE src/DE1/I2C_AV_Config.v
 set_global_assignment -name VERILOG_FILE src/DE1/SDRAM_Controller.v
-set_global_assignment -name QIP_FILE src/vga_pll.qip
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SD_CLK
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SD_CMD
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SD_DAT
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SD_DAT3
+set_global_assignment -name QIP_FILE rk_pll.qip
+set_global_assignment -name QIP_FILE rambuffer.qip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

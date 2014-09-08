@@ -20,8 +20,17 @@ module soundcodec(
 );
 
 reg [8:0] PWM_accumulator;
+reg state;
 
-always @(posedge clk) PWM_accumulator <= PWM_accumulator[7:0] + {pulse,7'b1};
+always @(posedge clk)
+begin
+	casex (state)
+	1'b0: state <= 1'b1;
+	1'b1: state <= 1'b0;
+	endcase
+	if (state == 1'b0)
+		PWM_accumulator <= PWM_accumulator[7:0] + {pulse,7'b1};
+end
 
 assign o_pwm = PWM_accumulator[8];
   
