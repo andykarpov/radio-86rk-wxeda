@@ -2,15 +2,17 @@
 
 ## Overview
 
-This project is a **Radio-86RK** port of the original Altera DE1 project by Dmitry Tselikov aka **b2m** on *Zr-Tech WXEDA board*.
+Radio-86RK is a popular DIY personal computer designed in 1986 by soviet union engineers and based on i8080A microprocessor (KR580VM80A). More information here: <https://ru.wikipedia.org/wiki/Радио_86РК> 
+
+This project is a **Radio-86RK** port of the original Altera DE1 fpga implementation by Dmitry Tselikov aka **b2m** on *Zr-Tech WXEDA board*.
 
 All copyrights are going to Dmitry Tselikov <http://bashkiria-2m.narod.ru/>. 
 
-Please see LICENSE.TXT for more information.
+Please see **LICENSE.TXT** for more information.
 
 SD card mod copyrights for WXEDA board are going to Viacheslav Slavinsky aka **svofski** <http://sensi.org/~svo>
 
-SVGA 800x600 implementation is going to Andy Karpov <andy.karpov@gmail.com>
+SVGA 800x600x72Hz mode copyrights are going to Andy Karpov <andy.karpov@gmail.com>
 
 Discussion about this project (including Altera DE1 implementation) is located here: <http://zx-pk.ru/showthread.php?t=12985>
 
