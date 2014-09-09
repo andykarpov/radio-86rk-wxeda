@@ -43,25 +43,21 @@ reg[5:0] data;
 wire[7:0] fdata;
 
 // framebuffer 408x300 (384x250 + gaps)
-reg[17:0] address_a;
-reg[17:0] address_b;
-reg data_a;
-reg data_b;
-reg wren_a;
-reg wren_b;
-wire q_a;
-wire q_b;
+reg[17:0] address_in;
+reg[17:0] address_out;
+reg data_in;
+wire data_out;
 
 rambuffer framebuf(
-	.address_a(address_a),
-	.address_b(address_b),
+	.address_a(address_in),
+	.address_b(address_out),
 	.clock(clk),
-	.data_a(data_a),
-	.data_b(data_b),
-	.wren_a(wren_a),
-	.wren_b(wren_b),
-	.q_a(q_a),
-	.q_b(q_b)
+	.data_a(data_in),
+	.data_b(),
+	.wren_a(1'b1),
+	.wren_b(1'b0),
+	.q_a(),
+	.q_b(data_out)
 );
 
 assign hr_wg75 = h_cnt >= 10'd468 && h_cnt < 10'd516 ? 1'b0 : 1'b1; // wg75 hsync 
@@ -88,14 +84,12 @@ begin
 			data <= {data[4:0],1'b0};
 			
 		// write visible data to framebuffer
-		if (h_cnt >= 60 && h_cnt < 468 && v_cnt2 >= 0 && v_cnt2 < 300)
+		if (h_cnt >= 60 && h_cnt < 468 && v_cnt2 >= 0 && v_cnt2 < 300 && v_cnt_line == 2'b00)
 		begin
-			wren_a <= 1'b1;
-			address_a <= h_cnt - 60 + (10'd408*(v_cnt2 - 0));
-			data_a <= data[5];
+			address_in <= h_cnt - 60 + (10'd408*(v_cnt2 - 0));
+			data_in <= data[5];
+			//data_in <= 1'b1; // test white screen
 		end
-		else
-			wren_a <= 1'b0;
 					
 		if (h_cnt+1'b1 == 10'd516) // 516 - end of line
 		begin
@@ -126,8 +120,6 @@ begin
 				d_cnt <= d_cnt+1'b1;
 		end
 	end
-	else 
-		wren_a <= 1'b0;
 end
 
 // vga sync generator
@@ -151,11 +143,10 @@ reg[1:0] pixel_state;
 reg[1:0] line_state;
 reg[10:0] pixel_cnt;
 reg[10:0] line_cnt;
-reg pixel;
 
-assign r = pixel && inDisplay ? 5'b10000 : 5'b0;
-assign g = pixel && inDisplay ? 6'b100000 : 6'b0;
-assign b = pixel && inDisplay ? 5'b10000 : 5'b0;
+assign r = data_out && inDisplay ? 5'b10000 : 5'b0;
+assign g = data_out && inDisplay ? 6'b100000 : 6'b0;
+assign b = data_out && inDisplay ? 5'b10000 : 5'b0;
 
 always @(posedge clk)
 begin
@@ -168,8 +159,7 @@ begin
 		2'b01: pixel_state <= 2'b00;
 		endcase
 
-		address_b <= pixel_cnt + (line_cnt*408);
-		pixel <= q_b;
+		address_out <= pixel_cnt + (line_cnt*408);
 		
 		if (pixel_state == 2'b01)
 			pixel_cnt <= pixel_cnt + 1;

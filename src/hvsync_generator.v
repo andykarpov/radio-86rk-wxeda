@@ -56,13 +56,7 @@ begin
 	vga_VS <= (CounterY >= (height+v_front_porch) && CounterY < (height+v_front_porch+v_sync_pulse)); 
 end
 
-reg inDisplayArea;
-always @(posedge clk)
-	if (CounterX < width && CounterY < height)
-		inDisplayArea <= 1;
-	else
-		inDisplayArea <= 0;
-	
+assign inDisplayArea = (CounterX < width && CounterY < height) ? 1'b1: 1'b0;	
 assign vga_h_sync = vga_HS; // positive polarization
 assign vga_v_sync = vga_VS; // positive polarization
 
