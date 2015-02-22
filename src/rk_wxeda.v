@@ -41,8 +41,8 @@ module rk_wxeda(
 	output	[5:0] VGA_G,
 	output	[4:0] VGA_B,
 
-	input				PS2_CLK,
-	input				PS2_DAT,
+	inout				PS2_CLK,
+	inout				PS2_DAT,
 
 	input				SD_DAT,					//	SD Card Data 			(MISO)
 	output			SD_DAT3,					//	SD Card Data 3 			(CSn)

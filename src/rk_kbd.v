@@ -10,6 +10,8 @@
 // An open implementation of Radio-86RK keyboard
 //
 // Author: Dmitry Tselikov   http://bashkiria-2m.narod.ru/
+// Modified by: Andy Karpov  <andy.karpov@gmail.com>
+// Added PS2Controller with debouncer and error checking
 // 
 // Design File: rk_kbd.v
 //
@@ -17,40 +19,42 @@
 module rk_kbd(
 	input clk,
 	input reset,
-	input ps2_clk,
-	input ps2_dat,
+	inout ps2_clk,
+	inout ps2_dat,
 	input[7:0] addr,
 	output reg[7:0] odata,
 	output[2:0] shift);
 
-reg[7:0] keystate[10:0];
+reg scancode_ready;
+reg[9:0] scancode;
+reg[2:0] shifts;
+assign shift = shifts[2:0];
+	
+Keyboard kbd(
+	.Reset(reset), .Clock(clk),
+	.PS2Clock(ps2_clk), .PS2Data(ps2_dat),
+	.CodeReady(scancode_ready), .ScanCode(scancode)
+);
 
-assign shift = keystate[8][2:0];
-
-always @(addr,keystate) begin
-	odata =
-		(keystate[0] & {8{addr[0]}})|
-		(keystate[1] & {8{addr[1]}})|
-		(keystate[2] & {8{addr[2]}})|
-		(keystate[3] & {8{addr[3]}})|
-		(keystate[4] & {8{addr[4]}})|
-		(keystate[5] & {8{addr[5]}})|
-		(keystate[6] & {8{addr[6]}})|
-		(keystate[7] & {8{addr[7]}});
+reg[7:0] keymatrix[7:0]; // multi-dimensional array of key matrix 
+                                                                                                                                                                          
+always @(addr,keymatrix) begin                                                                                                                                             
+        odata =                                                                                                                                                           
+                (keymatrix[0] & {8{addr[0]}})|                                                                                                                             
+                (keymatrix[1] & {8{addr[1]}})|                                                                                                                             
+                (keymatrix[2] & {8{addr[2]}})|                                                                                                                             
+                (keymatrix[3] & {8{addr[3]}})|                                                                                                                             
+                (keymatrix[4] & {8{addr[4]}})|                                                                                                                             
+                (keymatrix[5] & {8{addr[5]}})|                                                                                                                             
+                (keymatrix[6] & {8{addr[6]}})|                                                                                                                             
+                (keymatrix[7] & {8{addr[7]}});                                                                                                                             
 end
 
 reg[2:0] c;
 reg[3:0] r;
-reg extkey;
-reg unpress;
-reg[3:0] prev_clk;
-reg[11:0] shift_reg;
-
-wire[11:0] kdata = {ps2_dat,shift_reg[11:1]};
-wire[7:0] kcode = kdata[9:2];
 
 always @(*) begin
-	case (kcode)
+	case (scancode[7:0])
 	8'h6C: {c,r} = 7'h00; // 7 home
 	8'h7D: {c,r} = 7'h10; // 9 pgup
 	8'h76: {c,r} = 7'h20; // esc
@@ -85,7 +89,7 @@ always @(*) begin
 	8'h41: {c,r} = 7'h43; // ,
 	8'h4E: {c,r} = 7'h53; // -
 	8'h49: {c,r} = 7'h63; // .
-	8'h4A: {c,r} = extkey ? 7'h73 : 7'h73; // gray/ + /
+	8'h4A: {c,r} = 7'h73; // gray/ + /
 
 	8'h4C: {c,r} = 7'h04; // ;
 	8'h1C: {c,r} = 7'h14; // A
@@ -125,7 +129,7 @@ always @(*) begin
 
 	8'h12: {c,r} = 7'h08; // lshift
 	8'h59: {c,r} = 7'h08; // rshift
-	8'h14: {c,r} = extkey ? 7'h18 : 7'h18; // rctrl + lctrl
+	8'h14: {c,r} = 7'h18; // rctrl + lctrl
 	8'h11: {c,r} = 7'h28; // lalt
 
 /*	8'h0B: {c,r} = 7'h50; // F6
@@ -145,45 +149,32 @@ always @(*) begin
 end
 
 always @(posedge clk or posedge reset) begin
-
-		if (reset) begin
-			prev_clk <= 0;
-			shift_reg <= 12'hFFF;
-			extkey <= 0;
-			unpress <= 0;
-			keystate[0] <= 0;
-			keystate[1] <= 0;
-			keystate[2] <= 0;
-			keystate[3] <= 0;
-			keystate[4] <= 0;
-			keystate[5] <= 0;
-			keystate[6] <= 0;
-			keystate[7] <= 0;
-			keystate[8] <= 0;
-			keystate[9] <= 0;
-			keystate[10] <= 0;
-		end 
-		else 
-		begin	
-
-				prev_clk <= {ps2_clk,prev_clk[3:1]};
-				if (prev_clk==4'b1) 
-				begin
-					if (kdata[11]==1'b1 && ^kdata[10:2]==1'b1 && kdata[1:0]==2'b1) 
-					begin
-						shift_reg <= 12'hFFF;
-						if (kcode==8'hE0) extkey <= 1'b1; else
-						if (kcode==8'hF0) unpress <= 1'b1; else
-						begin
-							extkey <= 0;
-							unpress <= 0;
-							if(r!=4'hF) keystate[r][c] <= ~unpress;
-						end
-					end 
-					else
-						shift_reg <= kdata;
-				end
+	if (reset) begin
+		keymatrix[0] <= 0;
+		keymatrix[1] <= 0;
+		keymatrix[2] <= 0;
+		keymatrix[3] <= 0;
+		keymatrix[4] <= 0;
+		keymatrix[5] <= 0;
+		keymatrix[6] <= 0;
+		keymatrix[7] <= 0;
+		shifts[2:0] <= 3'b0;
+	end else begin
+		if(r!=4'hF && scancode_ready) keymatrix[r][c] <= ~scancode[8];
+		if (scancode_ready) // extended e0
+		begin
+			case (scancode[7:0])
+			8'h12: shifts[0] = ~scancode[8]; // lshift
+			8'h59: shifts[0] = ~scancode[8]; // rshift
+			8'h14: shifts[1] = ~scancode[8]; // rctrl + lctrl
+			8'h11: shifts[2] = ~scancode[8]; // lalt
+			//default:
+			//	shifts[2:0] = 3'b0;
+			endcase
 		end
+	end
 end
+
+
 
 endmodule
