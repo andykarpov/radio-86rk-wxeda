@@ -190,22 +190,22 @@ set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (Verilog)"
 set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
 set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to clk48mhz
+set_global_assignment -name VERILOG_FILE src/video/rk_video.v
+set_global_assignment -name VERILOG_FILE src/video/rambuffer.v
+set_global_assignment -name VERILOG_FILE src/video/k580wg75.v
+set_global_assignment -name VERILOG_FILE src/video/hvsync_generator.v
+set_global_assignment -name VERILOG_FILE src/sound/soundcodec.v
+set_global_assignment -name VERILOG_FILE src/sdram/SDRAM_Controller.v
+set_global_assignment -name VERILOG_FILE src/rom/font.v
+set_global_assignment -name VERILOG_FILE src/rom/biossd.v
+set_global_assignment -name VERILOG_FILE src/rom/bios.v
+set_global_assignment -name VERILOG_FILE src/keyboard/rk_kbd.v
 set_global_assignment -name VHDL_FILE src/keyboard/PS2Controller.vhd
 set_global_assignment -name VHDL_FILE src/keyboard/KeyboardMapper.vhd
 set_global_assignment -name VHDL_FILE src/keyboard/Keyboard.vhd
 set_global_assignment -name VHDL_FILE src/keyboard/Debouncer.vhd
-set_global_assignment -name VERILOG_FILE src/hvsync_generator.v
-set_global_assignment -name VERILOG_FILE src/soundcodec.v
+set_global_assignment -name VERILOG_FILE src/interface/k580ww55.v
+set_global_assignment -name VERILOG_FILE src/dma/k580wt57.v
+set_global_assignment -name VERILOG_FILE src/cpu/k580wm80a.v
 set_global_assignment -name VERILOG_FILE src/rk_wxeda.v
-set_global_assignment -name VERILOG_FILE src/k580wg75.v
-set_global_assignment -name VERILOG_FILE src/k580wm80a.v
-set_global_assignment -name VERILOG_FILE src/k580wt57.v
-set_global_assignment -name VERILOG_FILE src/k580ww55.v
-set_global_assignment -name VERILOG_FILE src/rk_kbd.v
-set_global_assignment -name VERILOG_FILE src/rk_video.v
-set_global_assignment -name QIP_FILE src/biossd.qip
-set_global_assignment -name QIP_FILE src/font.qip
-set_global_assignment -name VERILOG_FILE src/SDRAM_Controller.v
-set_global_assignment -name QIP_FILE src/rambuffer.qip
-set_global_assignment -name QIP_FILE src/pll50.qip
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

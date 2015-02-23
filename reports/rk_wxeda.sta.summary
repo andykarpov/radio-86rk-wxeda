@@ -1,0 +1,65 @@
+------------------------------------------------------------
+TimeQuest Timing Analyzer Summary
+------------------------------------------------------------
+
+Type  : Slow 1200mV 85C Model Setup 'clk48mhz'
+Slack : -9.984
+TNS   : -5838.777
+
+Type  : Slow 1200mV 85C Model Hold 'clk48mhz'
+Slack : 0.431
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Recovery 'clk48mhz'
+Slack : -2.108
+TNS   : -453.644
+
+Type  : Slow 1200mV 85C Model Removal 'clk48mhz'
+Slack : 1.687
+TNS   : 0.000
+
+Type  : Slow 1200mV 85C Model Minimum Pulse Width 'clk48mhz'
+Slack : -3.201
+TNS   : -1925.155
+
+Type  : Slow 1200mV 0C Model Setup 'clk48mhz'
+Slack : -9.255
+TNS   : -5416.242
+
+Type  : Slow 1200mV 0C Model Hold 'clk48mhz'
+Slack : 0.381
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Recovery 'clk48mhz'
+Slack : -1.795
+TNS   : -380.073
+
+Type  : Slow 1200mV 0C Model Removal 'clk48mhz'
+Slack : 1.538
+TNS   : 0.000
+
+Type  : Slow 1200mV 0C Model Minimum Pulse Width 'clk48mhz'
+Slack : -3.201
+TNS   : -1925.155
+
+Type  : Fast 1200mV 0C Model Setup 'clk48mhz'
+Slack : -3.716
+TNS   : -1938.811
+
+Type  : Fast 1200mV 0C Model Hold 'clk48mhz'
+Slack : 0.155
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Recovery 'clk48mhz'
+Slack : -0.446
+TNS   : -73.864
+
+Type  : Fast 1200mV 0C Model Removal 'clk48mhz'
+Slack : 0.731
+TNS   : 0.000
+
+Type  : Fast 1200mV 0C Model Minimum Pulse Width 'clk48mhz'
+Slack : -3.000
+TNS   : -1258.914
+
+------------------------------------------------------------

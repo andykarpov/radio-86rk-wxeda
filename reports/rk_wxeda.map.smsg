@@ -1,0 +1,2 @@
+Warning (10268): Verilog HDL information at rk_kbd.v(151): always construct contains both blocking and non-blocking assignments
+Warning (10268): Verilog HDL information at rk_wxeda.v(146): always construct contains both blocking and non-blocking assignments
